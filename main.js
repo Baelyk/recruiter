@@ -1,15 +1,21 @@
-const electron = require('electron')
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
+const {app, BrowserWindow, ipcMain: ipc} = require('electron')
+
+const EventEmitter = require('events')
+const telegrammer = require('./telegrammer.js')
 
 const path = require('path')
 const url = require('url')
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
+const emitter = new EventEmitter()
 let mainWindow
+// let nations = []
+const settings = {
+  clientKey: '7ee8e374',
+  secretKey: 'ef2d9cddd956',
+  tgid: '19355305'
+}
 
 function createWindow () {
   // Create the browser window.
@@ -23,7 +29,7 @@ function createWindow () {
   }))
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -37,7 +43,16 @@ function createWindow () {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', () => {
+  createWindow()
+
+  emitter.addListener('telegram-sent', (nation, code, message) => {
+    mainWindow.webContents.send('telegram-sent', nation, code, message)
+  })
+  emitter.addListener('telegram-fail', (nation, code, message) => {
+    mainWindow.webContents.send('telegram-fail', nation, code, message)
+  })
+})
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
